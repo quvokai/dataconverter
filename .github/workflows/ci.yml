@@ -10,25 +10,22 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      
+      # Часть 4: поменяйте на true для второго эксперимента
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     defaults:
       run:
-        
+        # Одинаковый синтаксис команд на всех ОС (на Windows это Git Bash)
         shell: bash
-
-    env:
-      
-      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.fc
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      
+      # Часть 5: кэш зависимостей. Ключ зависит от ОС и от CMakeLists.txt:
+      # поменяются версии зависимостей — кэш пересоздастся.
       - name: Cache FetchContent dependencies
         uses: actions/cache@v4
         with:
@@ -43,18 +40,25 @@ jobs:
           git --version
 
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DDATACONV_BUILD_TESTS=ON
+        # FETCHCONTENT_BASE_DIR - папка, куда FetchContent скачивает и собирает
+        # yaml-cpp и GoogleTest. Это переменная CMake (не окружения), поэтому
+        # передаём её через -D. Именно эту папку (.fc) мы кэшируем.
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DDATACONV_BUILD_TESTS=ON
+          "-DFETCHCONTENT_BASE_DIR=${{ github.workspace }}/.fc"
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: Test
-        
+        # Если хоть один тест упадёт, ctest вернёт ненулевой код и шаг (и job) упадёт.
         run: |
           cd build
           ctest -C Release --output-on-failure --output-junit test-results.xml
 
-      
+      # Часть 6: артефакты. always() — загружаем отчёт даже если тесты упали.
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
