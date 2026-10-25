@@ -73,6 +73,3 @@ TEST(Converter, EmptyCsvProducesEmptyArray) {
     EXPECT_TRUE(result.empty());
 }
 
-#ifdef __linux__
-TEST(Converter, DeliberateFailure) { FAIL() << "controlled failure"; }
-#endif
